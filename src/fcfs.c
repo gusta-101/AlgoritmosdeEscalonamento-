@@ -1,5 +1,8 @@
-
-
+/*
+ * Algoritmo de Escalonamento First-Come, First-Served (FCFS)
+ * Este código simula o escalonador FCFS, calculando os tempos de
+ * espera e retorno (turnaround) para um conjunto de processos.
+ */
 #include <stdio.h>
 #include <stdlib.h> // Para a função qsort
 
@@ -15,32 +18,44 @@ typedef struct {
     int tcomplete;       // Tempo de Conclusão (Completion Time)
 } Process;
 
-// Função auxiliar para comparar processos pelo tempo de chegada
-// Usada pela função qsort()
+/**
+ * @brief Função de comparação para o qsort.
+ * Compara dois processos com base no seu tempo de chegada (temp_cheg).
+ */
 int compareArrival(const void* a, const void* b) {
+    // Converte os ponteiros void* de volta para Process*
     Process* p1 = (Process*)a;
     Process* p2 = (Process*)b;
+    // Retorna a diferença; qsort ordena em ordem crescente
     return (p1->temp_cheg - p2->temp_cheg);
 }
 
-// Função auxiliar para encontrar o maior entre dois números
+/**
+ * @brief Encontra o maior entre dois inteiros.
+ */
 int max(int a, int b) {
     return (a > b) ? a : b;
 }
 
-// Função principal para calcular os tempos FCFS
+/**
+ * @brief Calcula todos os tempos (espera, retorno, conclusão)
+ * para um array de processos usando o algoritmo FCFS.
+ * @param proc Array de processos.
+ * @param n Número de processos no array.
+ */
 void findFCFSTimes(Process proc[], int n) {
     float total_espera = 0;
     float total_treturn = 0;
     
-    // 1. Ordena os processos pelo Tempo de Chegada (AT)
+    // 1. Ordena os processos pelo Tempo de Chegada (temp_cheg)
     // O FCFS *exige* que os processos sejam tratados na ordem em que chegam.
     qsort(proc, n, sizeof(Process), compareArrival);
 
     printf("--- Iniciando Simulação FCFS ---\n\n");
 
     // 2. Calcula os tempos para o primeiro processo (i = 0)
-    // O primeiro processo da fila (após ordenar)
+    // O primeiro processo da fila (após ordenar) é um caso especial
+    // pois não tem ninguém antes dele.
     
     // O tempo de conclusão é simplesmente sua chegada + sua execução
     proc[0].tcomplete = proc[0].temp_cheg + proc[0].temp_exec;
@@ -48,10 +63,10 @@ void findFCFSTimes(Process proc[], int n) {
     // O tempo de retorno é o tempo total (conclusão - chegada)
     proc[0].treturn = proc[0].tcomplete - proc[0].temp_cheg;
     
-    // O tempo de espera do primeiro processo é (tempo de retorno - tempo de execução)
-    // Se ele chegou em 0, seu tempo de espera é 0.
+    // O tempo de espera é (tempo de retorno - tempo de execução)
     proc[0].espera = proc[0].treturn - proc[0].temp_exec;
 
+    // Adiciona aos totais para calcular a média
     total_espera += proc[0].espera;
     total_treturn += proc[0].treturn;
 
@@ -95,22 +110,19 @@ void findFCFSTimes(Process proc[], int n) {
 // Função Main
 // ----------------------------------------------------------------
 int main() {
-    // Vamos usar o exemplo da nossa conversa anterior (Efeito Comboio)
-    // P1: Longo, chega primeiro
-    // P2: Curto, chega logo depois
-    // P3: Curto, chega logo depois
-    
+    // Define os processos para a simulação
+    // {PID, Tempo de Chegada, Tempo de Execução}
     Process proc[] = {
-        // PID, AT, BT
         {1, 0, 20}, // P1 (Longo)
         {2, 1, 2},  // P2 (Curto)
         {3, 2, 3}   // P3 (Curto)
     };
     
-    // Número de processos
+    // Calcula o número de processos no array
     int n = sizeof(proc) / sizeof(proc[0]);
 
+    // Chama a função principal do FCFS
     findFCFSTimes(proc, n);
 
-    return 0;
+    return 0; // Indica que o programa terminou com sucesso
 }
