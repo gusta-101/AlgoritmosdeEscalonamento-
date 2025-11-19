@@ -7,5 +7,6 @@ O grupo é composto por:
 *Vinicius Benevides* </br>
 *Gustavo* </br>
 *Raquel* </br>
+*Milena Pires* </br>
 
 
