@@ -1,128 +1,92 @@
-/*
- * Algoritmo de Escalonamento First-Come, First-Served (FCFS)
- * Este código simula o escalonador FCFS, calculando os tempos de
- * espera e retorno (turnaround) para um conjunto de processos.
- */
+
 #include <stdio.h>
-#include <stdlib.h> // Para a função qsort
 
-// Define a estrutura de um processo
-typedef struct {
-    int pid;      // ID do Processo
-    int temp_cheg;       // Tempo de Chegada (Arrival Time)
-    int temp_exec;       // Tempo de Execução (Burst Time)
+int main() {
     
-    // Resultados que serão calculados
-    int espera;       // Tempo de Espera (Waiting Time)
-    int treturn;      // Tempo de Retorno (Turnaround Time)
-    int tcomplete;       // Tempo de Conclusão (Completion Time)
-} Process;
-
-/**
- * @brief Função de comparação para o qsort.
- * Compara dois processos com base no seu tempo de chegada (temp_cheg).
- */
-int compareArrival(const void* a, const void* b) {
-    // Converte os ponteiros void* de volta para Process*
-    Process* p1 = (Process*)a;
-    Process* p2 = (Process*)b;
-    // Retorna a diferença; qsort ordena em ordem crescente
-    return (p1->temp_cheg - p2->temp_cheg);
-}
-
-/**
- * @brief Encontra o maior entre dois inteiros.
- */
-int max(int a, int b) {
-    return (a > b) ? a : b;
-}
-
-/**
- * @brief Calcula todos os tempos (espera, retorno, conclusão)
- * para um array de processos usando o algoritmo FCFS.
- * @param proc Array de processos.
- * @param n Número de processos no array.
- */
-void findFCFSTimes(Process proc[], int n) {
+    // Note que os tempos de chegada (0, 1, 2) já estão em ordem!
+    
+    int n = 3; // O número de processos que vamos simular
+    
+    int pid[] =       {1, 2, 3};  // IDs dos processos
+    int temp_cheg[] = {0, 1, 2};  // Tempos de Chegada (AT)
+    int temp_exec[] = {20, 2, 3}; // Tempos de Execução (BT)
+    
+    // Arrays vazios para guardar os resultados
+    int tcomplete[n];  // Tempo de Conclusão (CT)
+    int treturn[n];    // Tempo de Retorno (TAT)
+    int espera[n];     // Tempo de Espera (WT)
+    
     float total_espera = 0;
     float total_treturn = 0;
-    
-    // 1. Ordena os processos pelo Tempo de Chegada (temp_cheg)
-    // O FCFS *exige* que os processos sejam tratados na ordem em que chegam.
-    qsort(proc, n, sizeof(Process), compareArrival);
 
-    printf("--- Iniciando Simulação FCFS ---\n\n");
+    printf("--- Iniciando Simulação FCFS (Versão Simples) ---\n\n");
 
-    // 2. Calcula os tempos para o primeiro processo (i = 0)
-    // O primeiro processo da fila (após ordenar) é um caso especial
-    // pois não tem ninguém antes dele.
+    // --- PASSO 1: CALCULAR O PRIMEIRO PROCESSO (i = 0) ---
+    // O primeiro processo é especial, ele não espera por ninguém.
     
-    // O tempo de conclusão é simplesmente sua chegada + sua execução
-    proc[0].tcomplete = proc[0].temp_cheg + proc[0].temp_exec;
+    // Conclusão = Chegada + Execução
+    tcomplete[0] = temp_cheg[0] + temp_exec[0];
     
-    // O tempo de retorno é o tempo total (conclusão - chegada)
-    proc[0].treturn = proc[0].tcomplete - proc[0].temp_cheg;
+    // Retorno = Conclusão - Chegada
+    treturn[0] = tcomplete[0] - temp_cheg[0];
     
-    // O tempo de espera é (tempo de retorno - tempo de execução)
-    proc[0].espera = proc[0].treturn - proc[0].temp_exec;
+    // Espera = Retorno - Execução
+    espera[0] = treturn[0] - temp_exec[0];
+    
+    // Acumula os totais
+    total_espera += espera[0];
+    total_treturn += treturn[0];
 
-    // Adiciona aos totais para calcular a média
-    total_espera += proc[0].espera;
-    total_treturn += proc[0].treturn;
-
-    // 3. Calcula os tempos para os processos restantes (i = 1 até n-1)
+    // --- PASSO 2: CALCULAR O RESTANTE (i = 1 até n-1) ---
     for (int i = 1; i < n; i++) {
-        // O processo 'i' só pode começar *depois* que o processo 'i-1' terminar.
-        // O tempo de início (startTime) é o maior valor entre:
-        //   a) A hora que este processo 'i' chegou (proc[i].temp_cheg)
-        //   b) A hora que o processo anterior 'i-1' terminou (proc[i-1].tcomplete)
-        int startTime = max(proc[i].temp_cheg, proc[i - 1].tcomplete);
         
-        // O tempo de conclusão é o (tempo de início + tempo de execução)
-        proc[i].tcomplete = startTime + proc[i].temp_exec;
+        // Esta é a lógica principal do FCFS!
+        // A "Hora de Início" do processo 'i' é a hora que o
+        // processo 'i-1' (o anterior) terminou.
+        int startTime = tcomplete[i-1];
         
-        // Tempo de retorno = (conclusão - chegada)
-        proc[i].treturn = proc[i].tcomplete - proc[i].temp_cheg;
+        // ...MAS, e se o processo 'i' chegar DEPOIS que o 'i-1' terminou?
+        // (Ex: 'i-1' termina em 10, mas 'i' só chega em 15)
+        // A CPU ficaria ociosa. O 'startTime' real deve ser o maior
+        // entre a chegada de 'i' e a conclusão de 'i-1'.
         
-        // Tempo de espera = (tempo de retorno - tempo de execução)
-        proc[i].espera = proc[i].treturn - proc[i].temp_exec;
-
+        if (temp_cheg[i] > tcomplete[i-1]) {
+            startTime = temp_cheg[i];
+        }
+        
+        // Agora calculamos os tempos para o processo 'i'
+        
+        // Conclusão = Hora de Início + Execução
+        tcomplete[i] = startTime + temp_exec[i];
+        
+        // Retorno = Conclusão - Chegada
+        treturn[i] = tcomplete[i] - temp_cheg[i];
+        
+        // Espera = Retorno - Execução
+        espera[i] = treturn[i] - temp_exec[i];
+        
         // Acumula os totais
-        total_espera += proc[i].espera;
-        total_treturn += proc[i].treturn;
+        total_espera += espera[i];
+        total_treturn += treturn[i];
     }
 
-    // 4. Imprime a tabela de resultados
+    // --- PASSO 3: IMPRIMIR RESULTADOS ---
     printf("PID\t Chegada (AT)\t Execução (BT)\t Conclusão (CT)\t Retorno (TAT)\t Espera (WT)\n");
     printf("------------------------------------------------------------------------------------------\n");
     for (int i = 0; i < n; i++) {
         printf("%d\t\t %d\t\t %d\t\t %d\t\t %d\t\t %d\n",
-               proc[i].pid, proc[i].temp_cheg, proc[i].temp_exec, proc[i].tcomplete, proc[i].treturn, proc[i].espera);
+               pid[i], 
+               temp_cheg[i], 
+               temp_exec[i], 
+               tcomplete[i], 
+               treturn[i], 
+               espera[i]);
     }
     printf("------------------------------------------------------------------------------------------\n");
 
-    // 5. Imprime as médias
+    // --- PASSO 4: IMPRIMIR MÉDIAS ---
     printf("\nTempo Médio de Espera (Average WT): %.2f\n", (total_espera / n));
     printf("Tempo Médio de Retorno (Average TAT): %.2f\n", (total_treturn / n));
-}
 
-// ----------------------------------------------------------------
-// Função Main
-// ----------------------------------------------------------------
-int main() {
-    // Define os processos para a simulação
-    // {PID, Tempo de Chegada, Tempo de Execução}
-    Process proc[] = {
-        {1, 0, 20}, // P1 (Longo)
-        {2, 1, 2},  // P2 (Curto)
-        {3, 2, 3}   // P3 (Curto)
-    };
-    
-    // Calcula o número de processos no array
-    int n = sizeof(proc) / sizeof(proc[0]);
-
-    // Chama a função principal do FCFS
-    findFCFSTimes(proc, n);
-
-    return 0; // Indica que o programa terminou com sucesso
+    return 0;
 }
